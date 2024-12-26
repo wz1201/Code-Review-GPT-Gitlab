@@ -3,15 +3,15 @@
 model_quester_anster = "text-davinci-003"
 model_gpt_35_turbo = "gpt-3.5-turbo"
 model_programming_translate = "code-davinci-002"
-
+model4free = "gpt-4o-mini-2024-07-18"
 # gpt key
-openai_api_key = "your openai key"
+openai_api_key = "EXAMPLE"
 
 # openai api
-openai_baseurl = "https://api.openai.com/v1"
+openai_baseurl = "https://api.moonshot.cn/v1"
 
 # gpt model
-openai_model_name = model_gpt_35_turbo
+openai_model_name = "moonshot-v1-8k"
 
 # 2. 提示词
 gpt_message = """
@@ -39,10 +39,10 @@ gpt_message = """
 
 # -------------Gitlab info------------------
 # Gitlab url
-gitlab_server_url = "https://gitlab.example.com"
+gitlab_server_url = "http://192.168.1.28:8000/"
 
 # Gitlab private token
-gitlab_private_token = "gitlab private token"
+gitlab_private_token = "glpat-TS97bxB9MVfGuVu_SSWP"
 
 # Gitlab modifies the maximum number of files
 maximum_files = 50
@@ -50,5 +50,5 @@ maximum_files = 50
 
 # ------------- Message notification --------------------
 # dingding notification （un necessary）
-dingding_bot_webhook = "https://oapi.dingtalk.com/robot/send?access_token=*****************************************"
-dingding_secret = "S********************************950f"
+dingding_bot_webhook = "https://open.feishu.cn/open-apis/bot/v2/hook/fffe39c9-2bf9-4d4b-ab8a-62d89c2121ac"
+dingding_secret = "ghXvCPAi6krHDmW2GXTdsc"

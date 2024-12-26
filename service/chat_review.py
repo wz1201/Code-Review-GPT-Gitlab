@@ -1,6 +1,8 @@
 import concurrent.futures
 import threading
 import openai
+import time
+from openai import OpenAI
 from openai import OpenAIError
 from app.gitlab_utils import *
 from config.config import gitlab_server_url, gitlab_private_token, openai_api_key, openai_baseurl, openai_model_name
@@ -47,6 +49,10 @@ def generate_review_note(change):
         content = filter_diff_content(change['diff'])
         openai.api_key = openai_api_key
         openai.api_base = openai_baseurl
+        client = OpenAI(
+            api_key="EXAMPLE", # 在这里将 MOONSHOT_API_KEY 替换为你从 Kimi 开放平台申请的 API Key
+            base_url="https://api.moonshot.cn/v1",
+        )
         messages = [
             {"role": "system",
              "content": gpt_message
@@ -56,14 +62,14 @@ def generate_review_note(change):
              },
         ]
         log.info(f"发送给gpt 内容如下：{messages}")
-        response = openai.ChatCompletion.create(
+        completion = client.chat.completions.create(
             model=openai_model_name,
             messages=messages,
         )
         new_path = change['new_path']
         log.info(f'对 {new_path} review中...')
-        response_content = response['choices'][0]['message']['content'].replace('\n\n', '\n')
-        total_tokens = response['usage']['total_tokens']
+        response_content = completion.choices[0].message.content.replace('\n\n', '\n')
+        total_tokens = completion.usage.total_tokens
         review_note = f'# 📚`{new_path}`' + '\n\n'
         review_note += f'({total_tokens} tokens) {"AI review 意见如下:"}' + '\n\n'
         review_note += response_content + """
@@ -82,32 +88,40 @@ def generate_review_note(change):
         log.error(f"GPT error:{e}")
 
 
+
 def chat_review(commit_index, project_id, commit_id, changes, context_info, merge_comment_details):
-    log.info('开始code review')
+    log.info('开始 code review')
     if commit_index:
         review_summary = f"\n# {commit_index}.commit_id {commit_id} \n"
     else:
-        log.info(f"🚚 mr_changes{changes}")
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        review_results = []
-        result_lock = threading.Lock()
+        log.info(f"🚚 mr_changes {changes}")
+    
+    review_results = []
 
-        def process_change(change):
+    for change in changes:
+        # 检查文件后缀是否为目标文件
+        if any(change["new_path"].endswith(ext) for ext in ['.py', '.java', '.class', '.vue', ".go", ".c", ".h"]) and not any(
+            change["new_path"].endswith(ext) for ext in ["mod.go"]):
+            log.info(f"正在处理文件 {change['new_path']} 的代码变更...")
+            
+            # 调用 generate_review_note，并等待返回值
             result = generate_review_note(change)
-            with result_lock:
+            if result:
                 review_results.append(result)
-
-        futures = []
-        for change in changes:
-            if any(change["new_path"].endswith(ext) for ext in ['.py', '.java', '.class', '.vue', ".go"]) and not any(
-                change["new_path"].endswith(ext) for ext in ["mod.go"]):
-                futures.append(executor.submit(process_change, change))
+                log.info(f"完成文件 {change['new_path']} 的 review.")
             else:
-                log.info(f"{change['new_path']} 非目标检测文件！")
+                log.warning(f"文件 {change['new_path']} 的 review 返回空结果！")
 
-        concurrent.futures.wait(futures)
+            # 在每次调用之间等待 5 秒
+            log.info("等待 5 秒后继续处理下一文件...")
+            time.sleep(5)
+        else:
+            log.info(f"{change['new_path']} 非目标检测文件！")
 
+    # 返回合并的 review 结果
     return "\n\n".join(review_results) if review_results else ""
+
+
 
 
 # 针对于每个 commit 进行 cr

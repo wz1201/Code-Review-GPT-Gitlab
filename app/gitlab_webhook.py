@@ -2,7 +2,7 @@ import json
 import threading
 from os import abort
 from flask import Blueprint, request, jsonify
-from config.config import WEBHOOK_VERIFY_TOKEN
+from config.config import gitlab_private_token
 from service.chat_review import review_code, review_code_for_mr, review_code_for_add_commit
 from utils.logger import log
 from app.gitlab_utils import get_commit_list, get_merge_request_id, get_commit_change_file
@@ -23,7 +23,7 @@ def webhook():
         webhook_token = request.headers.get('X-Gitlab-Token')
 
         # gitlab的webhook的token验证
-        if webhook_token == WEBHOOK_VERIFY_TOKEN:
+        if webhook_token == gitlab_private_token:
             return jsonify({'status': 'success'}), 200
         else:
             return jsonify({'status': 'bad token'}), 401
@@ -42,7 +42,7 @@ def webhook():
 
         # 首次发起mr时候触发
         if event_type == 'merge_request' and gitlab_payload.get("object_attributes").get(
-            "state") == "opened" and gitlab_payload.get("object_attributes").get("merge_status") == "preparing":
+            "state") == "opened" :
             # 验证通过，获取commit的信息
             log.info("首次merge_request ", gitlab_payload)
             # 获取项目id
